@@ -150,6 +150,57 @@ describe("validateBookingDates", () => {
 
     expect(errors.endDate).toBe("Daily bookings cannot span more than 31 days.");
   });
+
+  describe("F12 — configured minDate and maxDate window boundaries", () => {
+    it("accepts booking dates within the configured minDate and maxDate boundaries", () => {
+      const errors = validateBookingDates({
+        startDate: "2026-10-20",
+        endDate: "2026-10-25",
+        planType: "DAILY",
+        minDate: "2026-10-20",
+        maxDate: "2026-10-31",
+      });
+
+      expect(errors).toEqual({});
+    });
+
+    it("rejects a start date earlier than minDate", () => {
+      const errors = validateBookingDates({
+        startDate: "2026-10-18",
+        endDate: "2026-10-25",
+        planType: "DAILY",
+        minDate: "2026-10-20",
+        maxDate: "2026-10-31",
+      });
+
+      expect(errors.startDate).toBe("The start date cannot be before 2026-10-20.");
+    });
+
+    it("rejects a start date later than maxDate", () => {
+      const errors = validateBookingDates({
+        startDate: "2026-11-01",
+        endDate: "2026-11-05",
+        planType: "DAILY",
+        minDate: "2026-10-20",
+        maxDate: "2026-10-31",
+      });
+
+      expect(errors.startDate).toBe("The start date cannot be after 2026-10-31.");
+      expect(errors.endDate).toBe("The end date cannot be after 2026-10-31.");
+    });
+
+    it("rejects an end date later than maxDate", () => {
+      const errors = validateBookingDates({
+        startDate: "2026-10-25",
+        endDate: "2026-11-02",
+        planType: "DAILY",
+        minDate: "2026-10-20",
+        maxDate: "2026-10-31",
+      });
+
+      expect(errors.endDate).toBe("The end date cannot be after 2026-10-31.");
+    });
+  });
 });
 
 

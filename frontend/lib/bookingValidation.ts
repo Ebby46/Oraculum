@@ -15,6 +15,10 @@ export interface BookingDateRangeInput {
   planType: PlanType;
   /** Today in `YYYY-MM-DD`. Injectable so the rule is deterministic in tests. */
   today?: string;
+  /** Earliest allowed booking date in `YYYY-MM-DD`. When omitted, defaults to `today`. */
+  minDate?: string;
+  /** Latest allowed booking date in `YYYY-MM-DD`. When provided, booking dates must not exceed this bound. */
+  maxDate?: string;
 }
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -187,15 +191,23 @@ export function validateBookingDates({
   endDate,
   planType,
   today = new Date().toISOString().split("T")[0],
+  minDate,
+  maxDate,
 }: BookingDateRangeInput): BookingFieldErrors {
   const errors: BookingFieldErrors = {};
+
+  const effectiveMin = minDate ?? today;
 
   if (!startDate) {
     errors.startDate = "Select a start date.";
   } else if (toUtcDay(startDate) === null) {
     errors.startDate = "Enter a valid start date.";
-  } else if (today && toUtcDay(today) !== null && startDate < today) {
-    errors.startDate = "The start date cannot be in the past.";
+  } else if (effectiveMin && toUtcDay(effectiveMin) !== null && startDate < effectiveMin) {
+    errors.startDate = minDate
+      ? `The start date cannot be before ${minDate}.`
+      : "The start date cannot be in the past.";
+  } else if (maxDate && toUtcDay(maxDate) !== null && startDate > maxDate) {
+    errors.startDate = `The start date cannot be after ${maxDate}.`;
   }
 
   if (!endDate) {
@@ -204,6 +216,8 @@ export function validateBookingDates({
     errors.endDate = "Enter a valid end date.";
   } else if (startDate && toUtcDay(startDate) !== null && endDate < startDate) {
     errors.endDate = "The end date cannot be before the start date.";
+  } else if (maxDate && toUtcDay(maxDate) !== null && endDate > maxDate) {
+    errors.endDate = `The end date cannot be after ${maxDate}.`;
   }
 
   if (errors.startDate || errors.endDate) return errors;
